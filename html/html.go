@@ -53,28 +53,49 @@ func manifestRec(b *strings.Builder, node any) error {
 func manifestNode(b *strings.Builder, node map[string]any) error {
 	_, hasHtml := node["html"]
 	_, hasElement := node["element"]
+	_, hasDoctype := node["doctype"]
+	kindCount := boolToInt(hasHtml) + boolToInt(hasElement) + boolToInt(hasDoctype)
 	switch {
-	case hasHtml && hasElement:
-		return fmt.Errorf("invalid html node: cannot have both 'html' and 'element' keys")
+	case kindCount > 1:
+		return fmt.Errorf("invalid html node: must have exactly one of 'element', 'html', or 'doctype' keys")
 	case hasHtml:
 		return manifestHtmlField(b, node["html"])
 	case hasElement:
 		return manifestElement(b, node)
+	case hasDoctype:
+		return manifestDoctype(b, node["doctype"])
 	default:
-		return fmt.Errorf("invalid html node: must have an 'element' or 'html' key, got %#v", node)
+		return fmt.Errorf("invalid html node: must have one of 'element', 'html', or 'doctype' keys, got %#v", node)
 	}
 }
 
-func manifestHtmlField(b *strings.Builder, html any) error {
-	switch v := html.(type) {
-	case string:
-		b.WriteString(v)
-		return nil
-	case map[string]any:
-		return manifestNode(b, v)
-	default:
-		return fmt.Errorf("invalid 'html' value: must be a string or object, got %#v", html)
+func boolToInt(v bool) int {
+	if v {
+		return 1
 	}
+	return 0
+}
+
+func manifestDoctype(b *strings.Builder, doctype any) error {
+	name, ok := doctype.(string)
+	if !ok {
+		return fmt.Errorf("invalid 'doctype' value: must be a string, got %#v", doctype)
+	}
+	if !isValidName(name) {
+		return fmt.Errorf("invalid 'doctype' value: %q is not a valid doctype name", name)
+	}
+	b.WriteString("<!doctype ")
+	b.WriteString(name)
+	b.WriteByte('>')
+	return nil
+}
+
+func manifestHtmlField(b *strings.Builder, html any) error {
+	if s, ok := html.(string); ok {
+		b.WriteString(s)
+		return nil
+	}
+	return manifestRec(b, html)
 }
 
 func manifestElement(b *strings.Builder, node map[string]any) error {
