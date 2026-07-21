@@ -111,6 +111,73 @@ func TestManifestAny(t *testing.T) {
 			want: "<br>",
 		},
 		{
+			name: "doctype renders as a bare declaration with no closing tag",
+			tree: map[string]any{"doctype": "html"},
+			want: "<!doctype html>",
+		},
+		{
+			name: "doctype and element as sibling roots in a top-level array",
+			tree: []any{
+				map[string]any{"doctype": "html"},
+				map[string]any{"element": "html", "children": []any{"hi"}},
+			},
+			want: "<!doctype html><html>hi</html>",
+		},
+		{
+			name: "multiple sibling elements at the root with no wrapper",
+			tree: []any{
+				map[string]any{"element": "a"},
+				map[string]any{"element": "b"},
+			},
+			want: "<a></a><b></b>",
+		},
+		{
+			name:    "invalid doctype name errors",
+			tree:    map[string]any{"doctype": `html"><script>`},
+			wantErr: true,
+		},
+		{
+			name:    "non-string doctype value errors",
+			tree:    map[string]any{"doctype": true},
+			wantErr: true,
+		},
+		{
+			name: "doctype combined with element errors",
+			tree: map[string]any{
+				"doctype": "html",
+				"element": "html",
+			},
+			wantErr: true,
+		},
+		{
+			name: "doctype combined with html errors",
+			tree: map[string]any{
+				"doctype": "html",
+				"html":    "raw",
+			},
+			wantErr: true,
+		},
+		{
+			name: "html field holding an array of sibling nodes renders both, unwrapped",
+			tree: map[string]any{
+				"html": []any{
+					map[string]any{"doctype": "html"},
+					map[string]any{"element": "html", "children": []any{"hi"}},
+				},
+			},
+			want: "<!doctype html><html>hi</html>",
+		},
+		{
+			name: "html field holding null renders nothing",
+			tree: map[string]any{"html": nil},
+			want: "",
+		},
+		{
+			name: "html field holding false renders nothing",
+			tree: map[string]any{"html": false},
+			want: "",
+		},
+		{
 			name: "nested elements",
 			tree: map[string]any{
 				"element": "div",
