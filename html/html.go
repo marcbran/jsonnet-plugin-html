@@ -14,6 +14,11 @@ var voidElements = map[string]bool{
 	"param": true, "source": true, "track": true, "wbr": true,
 }
 
+var rawTextElements = map[string]bool{
+	"script": true,
+	"style":  true,
+}
+
 func ManifestAny(tree any) (string, error) {
 	builder := strings.Builder{}
 	err := manifestRec(&builder, tree)
@@ -122,7 +127,12 @@ func manifestElement(b *strings.Builder, node map[string]any) error {
 	}
 
 	if children, ok := node["children"]; ok {
-		err := manifestRec(b, children)
+		var err error
+		if rawTextElements[tag] {
+			err = manifestRawText(b, tag, children)
+		} else {
+			err = manifestRec(b, children)
+		}
 		if err != nil {
 			return err
 		}
@@ -132,6 +142,43 @@ func manifestElement(b *strings.Builder, node map[string]any) error {
 	b.WriteString(tag)
 	b.WriteByte('>')
 	return nil
+}
+
+func manifestRawText(b *strings.Builder, tag string, node any) error {
+	switch v := node.(type) {
+	case nil:
+		return nil
+	case bool:
+		if v {
+			return fmt.Errorf("invalid raw text content: bare boolean true is not allowed")
+		}
+		return nil
+	case string:
+		if containsClosingTag(v, tag) {
+			return fmt.Errorf("invalid raw text content: must not contain a closing %q tag", tag)
+		}
+		b.WriteString(v)
+		return nil
+	case []any:
+		for _, child := range v {
+			if err := manifestRawText(b, tag, child); err != nil {
+				return err
+			}
+		}
+		return nil
+	case map[string]any:
+		htmlVal, ok := v["html"]
+		if !ok {
+			return fmt.Errorf("invalid raw text content: object must have an 'html' field, got %#v", node)
+		}
+		return manifestRawText(b, tag, htmlVal)
+	default:
+		return fmt.Errorf("invalid raw text content: must be a string, got %#v", node)
+	}
+}
+
+func containsClosingTag(s, tag string) bool {
+	return strings.Contains(strings.ToLower(s), "</"+strings.ToLower(tag))
 }
 
 func manifestAttributes(b *strings.Builder, attrsAny any) error {
