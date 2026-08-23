@@ -261,6 +261,64 @@ func TestManifestAny(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "style content is raw, not html-escaped",
+			tree: map[string]any{
+				"element":  "style",
+				"children": []any{"td > a { color: red; }"},
+			},
+			want: "<style>td > a { color: red; }</style>",
+		},
+		{
+			name: "script content is raw, not html-escaped",
+			tree: map[string]any{
+				"element":  "script",
+				"children": []any{"if (a < b && b > c) {}"},
+			},
+			want: "<script>if (a < b && b > c) {}</script>",
+		},
+		{
+			name: "style content containing a closing tag sequence errors",
+			tree: map[string]any{
+				"element":  "style",
+				"children": []any{"body::after { content: '</style>' }"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "style content containing an uppercase or mixed-case closing tag sequence still errors",
+			tree: map[string]any{
+				"element":  "style",
+				"children": []any{"body::after { content: '</STYLE>' }"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "script content only guards its own closing tag, not unrelated ones",
+			tree: map[string]any{
+				"element":  "script",
+				"children": []any{`document.body.innerHTML = "<div>hi</div>";`},
+			},
+			want: `<script>document.body.innerHTML = "<div>hi</div>";</script>`,
+		},
+		{
+			name: "script content given as a raw html component object is unwrapped, same as manifestHtmlField",
+			tree: map[string]any{
+				"element": "script",
+				"children": []any{
+					map[string]any{"html": `const x = 1 < 2;`},
+				},
+			},
+			want: "<script>const x = 1 < 2;</script>",
+		},
+		{
+			name: "style content rejects nested element nodes",
+			tree: map[string]any{
+				"element":  "style",
+				"children": []any{map[string]any{"element": "span"}},
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
