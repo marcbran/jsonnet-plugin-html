@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/marcbran/jsonnet-plugin-html/compare/v0.2.0...v0.3.0) (2026-09-09)
+
+
+### Features
+
+* plugin with options pattern ([#21](https://github.com/marcbran/jsonnet-plugin-html/issues/21)) ([d6cb054](https://github.com/marcbran/jsonnet-plugin-html/commit/d6cb054f36171eb31d6c77c64724903b293f2723))
+
 ## [0.2.0](https://github.com/marcbran/jsonnet-plugin-html/compare/v0.1.0...v0.2.0) (2026-08-23)
 
 
